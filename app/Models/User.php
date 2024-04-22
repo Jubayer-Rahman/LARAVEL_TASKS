@@ -46,4 +46,8 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function getContact(){
+        return $this->hasMany(Contact::class);
+    }
 }

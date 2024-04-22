@@ -9,29 +9,29 @@ use App\Models\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use App\Http\Requests\ContactRequest;
 
 class ContactController extends Controller
 {
     public function index(){
-        $user_id = Auth::id();
-        $contacts = Contact::where('user_id', $user_id)->get();
+        $contacts = Contact::withWhereHas('user', function($query){
+            $query->where('id', Auth::user()->id);
+        })->get();
         return response()->json([
             'message' => 'Request Succesfull',
             'data'=> $contacts
         ], status: 201);
     }
-    public function store(Request $request){
-        $request->validate([
-            'number' => [
-                'required',
-                'string',
-                Rule::unique('contacts', 'number'),
-            ],
-        ]);
+    public function store(ContactRequest $request){
 
         $user_id = Auth::id(); // Get the ID of the authenticated user
         if (!$user_id){
             return response()->json(['message' => 'User not found'], status:404);
+        }
+
+        $contact = Contact::where('number', $request->number)->first();
+        if ($contact){
+            return response()->json(['message' => 'Phone number already exists.'], status:404);
         }
         Contact::create([
             'user_id' => $user_id,
@@ -53,11 +53,8 @@ class ContactController extends Controller
             return response()->json(['message'=> 'Phone number doesnot belong to you'], status:404);
         }
     }
-    public function update(Request $request)
+    public function update(ContactRequest $request)
     {
-        $request->validate([
-            'number' => 'required|string',
-        ]);
 
         $number = $request->number;
         $contact = Contact::where('number', $number)->first();
